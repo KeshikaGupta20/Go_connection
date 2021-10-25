@@ -11,25 +11,28 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"github.com/KeshikaGupta20/Go_connection/fiber/database"
+	d "github.com/KeshikaGupta20/Go_connection/fiber/database"
 )
 
-type user struct {
-	Name string `json:"name"`
-	City string `json:"city"`
-	Age  int    `json:"age"`
+type product struct {
+	ID          *string   `json:"id,omitempty" bson:"_id,omitempty"`
+	Name        *string   `json:"title"`
+	Price       *float64  `json:"price"`
+	Quantity    *int      `json:"quantity"`
+	Description *string   `json:"description"`
+	Image *string `json:"image"`
 }
 
-var userCollection = db().Database("GO").Collection("Go_doc")
+var proCollection = d.db().Database("ecommerce").Collection("product")
 
-func createProfile(w http.ResponseWriter, r *http.Request) {
+func createProduct(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json") // for adding Content-type
-	var person user
+	var person product
 	err := json.NewDecoder(r.Body).Decode(&person) // storing in person variable of type user
 	if err != nil {
 		fmt.Print(err)
 	}
-	insertResult, err := userCollection.InsertOne(context.TODO(), person)
+	insertResult, err := proCollection.InsertOne(context.TODO(), person)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,15 +40,15 @@ func createProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 //Read function
-func getUserProfile(w http.ResponseWriter, r *http.Request) {
+func getProductProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	var body user
+	var body product
 	e := json.NewDecoder(r.Body).Decode(&body)
 	if e != nil {
 		fmt.Print(e)
 	}
 	var result primitive.M //  an unordered representation of a BSON document which is a Map
-	err := userCollection.FindOne(context.TODO(), bson.D{{"name", body.Name}}).Decode(&result)
+	err := proCollection.FindOne(context.TODO(), bson.D{{"name", body.Name}}).Decode(&result)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -54,11 +57,14 @@ func getUserProfile(w http.ResponseWriter, r *http.Request) {
 
 //update function
 
-func updateProfile(w http.ResponseWriter, r *http.Request) {
+func updateProduct(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	type updateBody struct {
-		Name string `json:"name"` //value that has to be matched
-		City string `json:"city"` // value that has to be modified
+		Name        *string   `json:"title"`
+	Price       *float64  `json:"price"`
+	Quantity    *int      `json:"quantity"`
+	Description *string   `json:"description"`
+	Image *string `json:"image"`// value that has to be modified
 	}
 	var body updateBody
 	e := json.NewDecoder(r.Body).Decode(&body)
@@ -69,8 +75,8 @@ func updateProfile(w http.ResponseWriter, r *http.Request) {
 	returnOpt := options.FindOneAndUpdateOptions{
 		ReturnDocument: &after,
 	}
-	update := bson.D{{"$set", bson.D{{"city", body.City}}}}
-	updateResult := userCollection.FindOneAndUpdate(context.TODO(), filter, update, &returnOpt)
+	update := bson.D{{"$set", bson.D{{"Price", body.Price}}}}
+	updateResult := proCollection.FindOneAndUpdate(context.TODO(), filter, update, &returnOpt)
 	var result primitive.M
 	_ = updateResult.Decode(&result)
 	json.NewEncoder(w).Encode(result)
@@ -78,7 +84,7 @@ func updateProfile(w http.ResponseWriter, r *http.Request) {
 
 // delete function
 
-func deleteProfile(w http.ResponseWriter, r *http.Request) {
+func deleteProduct(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)["id"]                   //get Parameter value as string
 	_id, err := primitive.ObjectIDFromHex(params) // convert params to mongodb Hex ID
@@ -86,7 +92,7 @@ func deleteProfile(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf(err.Error())
 	}
 	opts := options.Delete().SetCollation(&options.Collation{}) //specify language-specific rules for string comparison, such as rules for lettercase
-	res, err := userCollection.DeleteOne(context.TODO(), bson.D{{"_id", _id}}, opts)
+	res, err := proCollection.DeleteOne(context.TODO(), bson.D{{"_id", _id}}, opts)
 	if err != nil {
 		log.Fatal(err)
 	}
